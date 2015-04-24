@@ -1,35 +1,40 @@
-#borrowed a bit from here
-#http://davetang.org/muse/2013/04/06/using-the-r_twitter-package/
-
-#and of course: http://shiny.rstudio.com/gallery/
-
 library(tm)
 library(wordcloud)
 library(memoise)
+library(maps)
+library(mapproj)
 
-#don't see why our search term from twitter should be in the cloud
-custom_stopwords <- c(searchterm, "vegan", stopwords('english'))
+#trying to get out the obvious terms we don't want (twitter was searched for #vegan)
+custom_stopwords <- c("vegan", "http", "amp", stopwords('english'))
 
-all_tweets<-as.data.frame(read.csv("tweets.csv"))#bring in data
+removeURL <- function(x) gsub("http","", x) #simple function to remove http stubs
 
-#turn created field into a date field
-all_tweets$created <- as.Date(all_tweets$created)
+my_tweets<-as.data.frame(read.csv("tweets.csv"))#bring in data
 
-getTermMatrix <- memoise(function(makecloud) { #might need to name the function
+#develop corpus
+myCorpus <- Corpus(VectorSource(my_tweets$text))
+myCorpus <- tm_map(myCorpus, removePunctuation)
+myCorpus <- tm_map(myCorpus, tolower)
+myCorpus <- tm_map(myCorpus, removeURL)
+myCorpus <- tm_map(myCorpus, removeWords, custom_stopwords)
 
-    my_tweets <- all_tweets[all_tweets$created>=lowest & all_tweets$created<=highest,]
-    
-    myCorpus <- Corpus(VectorSource(my_tweets$text))
-    myCorpus <- tm_map(myCorpus, removePunctuation)
-    myCorpus <- tm_map(myCorpus, tolower)
-    myCorpus <- tm_map(myCorpus, removeWords, custom_stopwords)
-    
-    
-    myDTM = TermDocumentMatrix(myCorpus,
-                               control = list(minWordLength = 1))
-    
-    m = as.matrix(myDTM)
-    
-    sort(rowSums(m), decreasing = TRUE)
-    }
-)
+myCorpus <- Corpus(VectorSource(myCorpus))
+
+myDTM = TermDocumentMatrix(myCorpus,
+                           control = list(minWordLength = 2))
+
+#find the top 5 used terms
+myMatrix <- as.matrix(myDTM)
+myMatrix <- sort(rowSums(myMatrix), decreasing=TRUE)
+topTerms <- names(head(myMatrix))
+
+myMatrix <- as.data.frame(myMatrix)
+myMatrix$names <- rownames(myMatrix)
+colnames(myMatrix) <- c("freq","names")
+myMatrix <- myMatrix[!grepl("http",myMatrix$names),] #gets out URLs
+
+#smaller subset w/ freq set at 30 - wordcloud will take a while to run as it is
+myMatrix_30<-myMatrix[myMatrix$freq > 30,] 
+
+#data cleanup
+rm("custom_stopwords","myCorpus")
