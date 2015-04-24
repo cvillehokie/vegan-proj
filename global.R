@@ -1,9 +1,9 @@
 library(tm)
 library(wordcloud)
-#library(memoise)
+library(memoise)
 #library(maps)
 #library(mapproj)
-
+library(httr)
 
 #I can't have my web app going out to twitter.com and dl'ing 5k tweets
 #CSV file stored on my github
