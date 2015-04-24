@@ -1,15 +1,23 @@
 library(tm)
 library(wordcloud)
-library(memoise)
-library(maps)
-library(mapproj)
+#library(memoise)
+#library(maps)
+#library(mapproj)
+
+
+#I can't have my web app going out to twitter.com and dl'ing 5k tweets
+#CSV file stored on my github
+library(RCurl)
+x<-getURL('https://raw.githubusercontent.com/cvillehokie/vegan-proj/master/tweets.csv',
+          ssl.verifypeer = FALSE)
+y<-read.csv(textConnection(x))#bring in data
 
 #trying to get out the obvious terms we don't want (twitter was searched for #vegan)
 custom_stopwords <- c("vegan", "http", "amp", stopwords('english'))
 
 removeURL <- function(x) gsub("http","", x) #simple function to remove http stubs
 
-my_tweets<-as.data.frame(read.csv("tweets.csv"))#bring in data
+my_tweets<-as.data.frame(y)
 
 #develop corpus
 myCorpus <- Corpus(VectorSource(my_tweets$text))
